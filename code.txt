@@ -1,0 +1,160 @@
+library(boot) 
+library(car)
+library(QuantPsyc)
+library(lmtest)
+library(sandwich)
+library(vars)
+library(nortest)
+library(MASS)
+ 
+
+data<- read.csv("Fn-UseC_-Marketing-Customer-Value-Analysis.csv")
+
+
+
+str(data)
+summary(data)
+
+boxplot(data$Customer.Lifetime.Value)
+quantile(data$Customer.Lifetime.Value, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.99,0.995,1))
+
+data2 <- data[data$Customer.Lifetime.Value <14500, ]
+boxplot(data2$Customer.Lifetime.Value)
+
+quantile(data2$Customer.Lifetime.Value, c(0,0.05,0.1,0.25,0.5,0.75,0.90,0.95,0.97,0.98,0.985,0.99,0.995,1))
+
+
+nrow(data)-nrow(data2)
+
+data <- data2
+
+
+## Check the missing value (if any)
+sapply(data, function(x) sum(is.na(x)))
+
+nrow(data)
+names(data)
+
+## Model begins
+
+fit<- lm(Customer.Lifetime.Value ~ State +	Response +	Coverage +	Education +	Effective.To.Date +	
+           +	EmploymentStatus +	Gender + Location.Code + Marital.Status +
+           Policy.Type + Policy + Renew.Offer.Type + Sales.Channel + Vehicle.Class + 
+           Vehicle.Size, data=data)
+summary(fit)
+
+
+fit<- lm(Customer.Lifetime.Value ~ State +	Response +	Coverage +	Education +	Effective.To.Date +	
+           +	EmploymentStatus +	Gender +  Marital.Status +
+           Policy.Type + Policy + Renew.Offer.Type + Sales.Channel + Vehicle.Class + 
+           Vehicle.Size, data=data)
+summary(fit)
+
+fit<- lm(Customer.Lifetime.Value ~ State +	Response +	Coverage +	Education +	Effective.To.Date +	
+           +	Gender +  Marital.Status +
+           Policy.Type + Policy + Renew.Offer.Type + Sales.Channel + Vehicle.Class + 
+           Vehicle.Size, data=data)
+summary(fit)
+
+fit<- lm(Customer.Lifetime.Value ~ State +	Response +	Coverage +	Education +	Effective.To.Date +	
+           +  Marital.Status +
+           Policy.Type + Policy + Renew.Offer.Type + Sales.Channel + Vehicle.Class + 
+           Vehicle.Size, data=data)
+summary(fit)
+
+fit<- lm(Customer.Lifetime.Value ~ State +	Response +	Coverage +	Education +	Effective.To.Date +	
+           +  Marital.Status + Policy + Renew.Offer.Type + Sales.Channel + 
+           Vehicle.Class + Vehicle.Size, data=data)
+summary(fit)
+
+fit<- lm(Customer.Lifetime.Value ~ State +	Response +	Coverage +	Education +	Effective.To.Date +	
+           +  Marital.Status + Renew.Offer.Type + Sales.Channel + 
+           Vehicle.Class + Vehicle.Size, data=data)
+summary(fit)
+
+fit<- lm(Customer.Lifetime.Value ~ State +	Response +	Coverage +	Education +	I(Effective.To.Date == "1/29/11") +	
+           I(Effective.To.Date == "1/30/11") + I(Effective.To.Date == "2/25/11") + Marital.Status + 
+           Renew.Offer.Type + Sales.Channel + Vehicle.Class + Vehicle.Size, data=data)
+summary(fit)
+
+fit<- lm(Customer.Lifetime.Value ~ I(State == "Nevada") + I(State == "Washington") +	
+           Coverage +	Education +	I(Effective.To.Date == "1/29/11") +	
+           I(Effective.To.Date == "1/30/11") + I(Effective.To.Date == "2/25/11") + Marital.Status + 
+           Renew.Offer.Type + Sales.Channel + Vehicle.Class + Vehicle.Size, data=data)
+summary(fit)
+
+fit<- lm(Customer.Lifetime.Value ~ I(State == "Nevada") + I(State == "Washington") +	
+           Coverage  +	I(Effective.To.Date == "1/29/11") +	
+           I(Effective.To.Date == "1/30/11") + I(Effective.To.Date == "2/25/11") + Marital.Status + 
+           Renew.Offer.Type + Sales.Channel + Vehicle.Class + Vehicle.Size, data=data)
+summary(fit)
+
+fit<- lm(Customer.Lifetime.Value ~ I(State == "Nevada") + I(State == "Washington") +	
+           Coverage  +	I(Effective.To.Date == "1/29/11") +	
+           I(Effective.To.Date == "1/30/11") + I(Effective.To.Date == "2/25/11") + 
+           I(Marital.Status == "Single") + 
+           Renew.Offer.Type + Sales.Channel + Vehicle.Class + Vehicle.Size, data=data)
+summary(fit)
+
+fit<- lm(Customer.Lifetime.Value ~ I(State == "Nevada") + I(State == "Washington") +	
+           Coverage  +	I(Effective.To.Date == "1/29/11") +	
+           I(Effective.To.Date == "1/30/11") + I(Effective.To.Date == "2/25/11") + 
+           I(Marital.Status == "Single") + 
+           Renew.Offer.Type + Vehicle.Class + Vehicle.Size, data=data)
+summary(fit)
+
+##Final model 
+
+fit<- lm(Customer.Lifetime.Value ~ I(State == "Nevada") + I(State == "Washington") +	
+           Coverage  +	I(Effective.To.Date == "1/29/11") +	
+           I(Effective.To.Date == "1/30/11") + I(Effective.To.Date == "2/25/11") + 
+           I(Marital.Status == "Single") + Renew.Offer.Type + I(Vehicle.Class == "Luxury Car") + 
+           I(Vehicle.Class == "Luxury SUV") + I(Vehicle.Class == "Sports Car") + 
+           I(Vehicle.Class == "SUV") + Vehicle.Size, data=data)
+summary(fit)
+
+
+plot(fit)
+
+
+#Check Vif, vif>2 means presence of multicollinearity
+vif(fit)
+
+
+
+## Get the predicted or fitted values
+fitted(fit)
+
+## MAPE
+data$pred <- fitted(fit)
+
+#Calculating MAPE
+attach(data)
+(sum((abs(Customer.Lifetime.Value-pred))/Customer.Lifetime.Value))/nrow(data)
+
+
+##################################### Checking of Assumption ############################################
+
+# residuals should be uncorrelated ##Autocorrelation
+# Null H0: residuals from a linear regression are uncorrelated. Value should be close to 2. 
+#Less than 1 and greater than 3 -> concern
+## Should get a high p value
+
+dwt(fit)
+
+# Checking multicollinearity
+vif(fit) # should be within 2. If it is greater than 10 then serious problem
+
+################ Constant error variance ##########Heteroscedasticity
+
+
+# Breusch-Pagan test
+bptest(fit)  
+
+
+## Normality testing Null hypothesis is data is normal.
+
+resids <- fit$residuals
+
+
+ad.test(resids) #get Anderson-Darling test for normality
